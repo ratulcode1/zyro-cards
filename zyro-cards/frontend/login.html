@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<title>Zyro Cards — Sign in</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="wrap narrow">
+  <h1 style="margin-bottom:4px;">Zyro Cards</h1>
+  <p style="color:var(--muted); margin-top:0;">Your digital identity, one tap away.</p>
+
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" id="tab-login">Sign in</div>
+      <div class="tab" id="tab-register">Create account</div>
+    </div>
+    <div id="msg"></div>
+
+    <form id="loginForm">
+      <div class="field"><label>Email</label><input type="email" id="loginEmail" required /></div>
+      <div class="field"><label>Password</label><input type="password" id="loginPassword" required /></div>
+      <button type="submit">Sign in</button>
+    </form>
+
+    <form id="registerForm" class="hidden">
+      <div class="field"><label>Email</label><input type="email" id="regEmail" required /></div>
+      <div class="field"><label>Password</label><input type="password" id="regPassword" required minlength="6" /></div>
+      <button type="submit">Create account</button>
+    </form>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:4000";
+const msg = document.getElementById("msg");
+function showMsg(text, type) { msg.innerHTML = `<div class="msg ${type}">${text}</div>`; }
+
+document.getElementById("tab-login").onclick = () => {
+  document.getElementById("tab-login").classList.add("active");
+  document.getElementById("tab-register").classList.remove("active");
+  document.getElementById("loginForm").classList.remove("hidden");
+  document.getElementById("registerForm").classList.add("hidden");
+};
+document.getElementById("tab-register").onclick = () => {
+  document.getElementById("tab-register").classList.add("active");
+  document.getElementById("tab-login").classList.remove("active");
+  document.getElementById("registerForm").classList.remove("hidden");
+  document.getElementById("loginForm").classList.add("hidden");
+};
+
+document.getElementById("loginForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("loginEmail").value;
+  const password = document.getElementById("loginPassword").value;
+  const r = await fetch(`${API}/api/auth/login`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await r.json();
+  if (!r.ok) return showMsg(data.error, "error");
+  localStorage.setItem("zyro_token", data.token);
+  window.location.href = "dashboard.html";
+};
+
+document.getElementById("registerForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("regEmail").value;
+  const password = document.getElementById("regPassword").value;
+  const r = await fetch(`${API}/api/auth/register`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await r.json();
+  if (!r.ok) return showMsg(data.error, "error");
+  localStorage.setItem("zyro_token", data.token);
+  window.location.href = "dashboard.html";
+};
+</script>
+</body>
+</html>

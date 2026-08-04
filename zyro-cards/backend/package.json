@@ -1,0 +1,20 @@
+{
+  "name": "zyro-cards-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Zyro Cards — NFC/QR digital identity cards",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "seed-admin": "node seed-admin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "qrcode": "^1.5.4",
+    "uuid": "^9.0.1"
+  }
+}

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<title>Zyro Cards — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- LOGIN VIEW -->
+<div id="loginView" class="wrap narrow" style="margin:auto; padding-top:80px;">
+  <div style="text-align:center; margin-bottom:22px;">
+    <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-family:'Manrope',sans-serif;font-weight:800;color:#04120f;font-size:20px;">Z</div>
+    <h1>Zyro Cards</h1>
+    <p style="color:var(--muted); margin-top:4px;">Admin control panel</p>
+  </div>
+  <div class="card">
+    <div id="loginMsg"></div>
+    <form id="adminLoginForm">
+      <div class="field"><label>Admin email</label><input id="aEmail" value="admin@zyrocards.com" /></div>
+      <div class="field"><label>Password</label><input type="password" id="aPassword" value="admin123" /></div>
+      <button type="submit" style="width:100%;">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- ADMIN SHELL -->
+<div id="adminView" class="shell hidden">
+  <div class="sidebar">
+    <div class="brand"><div class="mark">Z</div><div class="name">Zyro Cards</div></div>
+    <div class="navlink active" data-tab="overview">📊&nbsp; Overview</div>
+    <div class="navlink" data-tab="generate">➕&nbsp; Generate cards</div>
+    <div class="navlink" data-tab="cards">💳&nbsp; All cards</div>
+    <div class="navlink" data-tab="users">👤&nbsp; Users</div>
+    <div class="navlink" data-tab="settings">⚙️&nbsp; Settings</div>
+    <div style="flex:1;"></div>
+    <div class="navlink" id="adminLogout">↩︎&nbsp; Log out</div>
+  </div>
+
+  <div class="main">
+    <!-- OVERVIEW -->
+    <div id="panel-overview">
+      <div class="topbar"><h2>Overview</h2></div>
+      <div class="stat-grid" id="statGrid"></div>
+      <div class="card">
+        <h3 style="margin-bottom:14px; font-size:15px;">Most-scanned cards</h3>
+        <table><thead><tr><th>Code</th><th>Scans</th></tr></thead><tbody id="topCardsBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- GENERATE -->
+    <div id="panel-generate" class="hidden">
+      <div class="topbar"><h2>Generate cards</h2></div>
+      <div class="card">
+        <p style="color:var(--muted); font-size:13.5px; margin-top:0;">Creates unique codes in the database before printing.
+        Each code becomes a URL — write that URL to the NFC chip and print its QR on the card.</p>
+        <div class="row2">
+          <div class="field"><label>How many cards</label><input type="number" id="genCount" value="10" min="1" /></div>
+          <div class="field"><label>Batch name</label><input id="genBatch" placeholder="e.g. Batch-2026-07" /></div>
+        </div>
+        <button id="genBtn">Generate batch</button>
+        <div id="genResult" style="margin-top:18px;"></div>
+      </div>
+    </div>
+
+    <!-- CARDS -->
+    <div id="panel-cards" class="hidden">
+      <div class="topbar"><h2>All cards</h2></div>
+      <div class="card" style="padding:0; overflow:hidden;">
+        <table><thead><tr><th>Code</th><th>Status</th><th>Owner</th><th>Batch</th><th style="text-align:right;">Actions</th></tr></thead><tbody id="cardsBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="panel-users" class="hidden">
+      <div class="topbar">
+        <h2>Users</h2>
+        <button id="addUserBtn">+ Add user</button>
+      </div>
+      <div class="card" style="padding:0; overflow:hidden;">
+        <table><thead><tr><th>Email</th><th>Name</th><th>Joined</th><th style="text-align:right;">Actions</th></tr></thead><tbody id="usersBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="panel-settings" class="hidden">
+      <div class="topbar"><h2>Admin account settings</h2></div>
+      <div class="card narrow">
+        <div id="settingsMsg"></div>
+        <form id="settingsForm">
+          <div class="field"><label>Admin email</label><input id="setEmail" /></div>
+          <div class="field"><label>New password (leave blank to keep current)</label><input type="password" id="setNewPassword" placeholder="••••••••" /></div>
+          <div class="field"><label>Current password (required to save)</label><input type="password" id="setCurrentPassword" required /></div>
+          <button type="submit">Save changes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit user modal -->
+<div id="userModalOverlay" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="userModalTitle">Add user</h3>
+      <div class="modal-close" id="userModalClose">✕</div>
+    </div>
+    <div id="userModalMsg"></div>
+    <form id="userModalForm">
+      <input type="hidden" id="um_userId" />
+      <div class="row2">
+        <div class="field"><label>Email</label><input id="um_email" required /></div>
+        <div class="field"><label id="um_pw_label">Password</label><input type="password" id="um_password" placeholder="min 6 characters" /></div>
+      </div>
+      <div class="field"><label>Full name</label><input id="um_full_name" /></div>
+      <div class="row2">
+        <div class="field"><label>Job title</label><input id="um_job_title" /></div>
+        <div class="field"><label>Company</label><input id="um_company" /></div>
+      </div>
+      <div class="field"><label>Bio</label><textarea id="um_bio" rows="2"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>Phone</label><input id="um_phone" /></div>
+        <div class="field"><label>Public email</label><input id="um_email_public" /></div>
+      </div>
+      <div class="field"><label>Photo URL</label><input id="um_photo_url" placeholder="https://..." /></div>
+      <div style="display:flex; gap:10px; margin-top:20px;">
+        <button type="submit" style="flex:1;">Save</button>
+        <button type="button" class="secondary" id="userModalCancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:4000";
+let token = localStorage.getItem("zyro_admin_token");
+
+function showAdmin() {
+  document.getElementById("loginView").classList.add("hidden");
+  document.getElementById("adminView").classList.remove("hidden");
+  loadStats(); loadCards(); loadUsers(); loadSettingsForm();
+}
+if (token) showAdmin();
+
+document.getElementById("adminLoginForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("aEmail").value;
+  const password = document.getElementById("aPassword").value;
+  const r = await fetch(`${API}/api/admin/login`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({email,password}) });
+  const data = await r.json();
+  if (!r.ok) { document.getElementById("loginMsg").innerHTML = `<div class="msg error">${data.error}</div>`; return; }
+  token = data.token;
+  localStorage.setItem("zyro_admin_token", token);
+  showAdmin();
+};
+document.getElementById("adminLogout").onclick = () => { localStorage.removeItem("zyro_admin_token"); location.reload(); };
+
+document.querySelectorAll(".navlink[data-tab]").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".navlink[data-tab]").forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    ["overview","generate","cards","users","settings"].forEach(name => {
+      document.getElementById("panel-"+name).classList.toggle("hidden", name !== tab.dataset.tab);
+    });
+  };
+});
+
+function authHeaders(json=true) {
+  const h = { Authorization: `Bearer ${token}` };
+  if (json) h["Content-Type"] = "application/json";
+  return h;
+}
+function toast(elId, text, type) {
+  document.getElementById(elId).innerHTML = `<div class="msg ${type}">${text}</div>`;
+  setTimeout(()=>{ const el=document.getElementById(elId); if(el) el.innerHTML=""; }, 3500);
+}
+
+// ---------- OVERVIEW ----------
+async function loadStats() {
+  const r = await fetch(`${API}/api/admin/analytics`, { headers: authHeaders(false) });
+  const s = await r.json();
+  document.getElementById("statGrid").innerHTML = `
+    <div class="stat"><div class="num">${s.totalUsers}</div><div class="label">Total users</div></div>
+    <div class="stat"><div class="num">${s.totalCards}</div><div class="label">Total cards</div></div>
+    <div class="stat"><div class="num">${s.activeCards}</div><div class="label">Active cards</div></div>
+    <div class="stat"><div class="num">${s.totalScans}</div><div class="label">Total taps/scans</div></div>
+  `;
+  document.getElementById("topCardsBody").innerHTML = (s.topCards||[]).map(c=>`<tr><td>${c.unique_code}</td><td>${c.scan_count}</td></tr>`).join("") || `<tr><td colspan="2" style="color:var(--muted);">No scans yet</td></tr>`;
+}
+
+// ---------- CARDS ----------
+async function loadCards() {
+  const r = await fetch(`${API}/api/admin/cards`, { headers: authHeaders(false) });
+  const cards = await r.json();
+  document.getElementById("cardsBody").innerHTML = cards.map(c => `
+    <tr>
+      <td>${c.unique_code}</td>
+      <td><span class="badge ${c.status}">${c.status}</span></td>
+      <td>${c.owner_email || "—"}</td>
+      <td>${c.batch_name || "—"}</td>
+      <td>
+        <div class="row-actions" style="justify-content:flex-end;">
+          <button class="ghost small" onclick="window.open('${API}/api/admin/cards/${c.unique_code}/qr?t=${encodeURIComponent(token)}','_blank')">QR</button>
+          ${c.status === "disabled"
+            ? `<button class="ghost small" onclick="setCardStatus('${c.unique_code}','active')">Enable</button>`
+            : `<button class="ghost small" onclick="setCardStatus('${c.unique_code}','disabled')">Disable</button>`}
+          <button class="danger small" onclick="deleteCard('${c.unique_code}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join("") || `<tr><td colspan="5" style="color:var(--muted);">No cards yet — generate a batch first.</td></tr>`;
+}
+async function setCardStatus(code, status) {
+  const r = await fetch(`${API}/api/admin/cards/${code}/status`, { method:"PUT", headers: authHeaders(), body: JSON.stringify({status}) });
+  if (r.ok) { loadCards(); loadStats(); }
+}
+async function deleteCard(code) {
+  if (!confirm(`Card "${code}" permanently delete করবেন?`)) return;
+  const r = await fetch(`${API}/api/admin/cards/${code}`, { method:"DELETE", headers: authHeaders(false) });
+  if (r.ok) { loadCards(); loadStats(); }
+}
+document.getElementById("genBtn").onclick = async () => {
+  const count = parseInt(document.getElementById("genCount").value, 10);
+  const batchName = document.getElementById("genBatch").value;
+  const r = await fetch(`${API}/api/admin/cards/generate`, { method:"POST", headers: authHeaders(), body: JSON.stringify({count, batchName}) });
+  const data = await r.json();
+  document.getElementById("genResult").innerHTML = `
+    <div class="msg success">Generated ${data.generated.length} cards.</div>
+    <table><thead><tr><th>Code</th><th>URL to write on NFC chip</th></tr></thead>
+    <tbody>${data.urls.map((u,i)=>`<tr><td>${data.generated[i]}</td><td>${u}</td></tr>`).join("")}</tbody></table>
+  `;
+  loadStats(); loadCards();
+};
+
+// ---------- USERS ----------
+async function loadUsers() {
+  const r = await fetch(`${API}/api/admin/users`, { headers: authHeaders(false) });
+  const users = await r.json();
+  document.getElementById("usersBody").innerHTML = users.map(u => `
+    <tr>
+      <td>${u.email}</td><td>${u.full_name || "—"}</td><td>${(u.created_at||"").split(" ")[0]}</td>
+      <td>
+        <div class="row-actions" style="justify-content:flex-end;">
+          <button class="ghost small" onclick="openEditUser(${u.id})">Edit</button>
+          <button class="ghost small" onclick="resetUserPassword(${u.id})">Reset password</button>
+          <button class="danger small" onclick="deleteUser(${u.id}, '${(u.email||'').replace(/'/g,"")}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+  `).join("") || `<tr><td colspan="4" style="color:var(--muted);">No users yet.</td></tr>`;
+}
+async function resetUserPassword(id) {
+  const pw = prompt("নতুন পাসওয়ার্ড দিন (কমপক্ষে ৬ ক্যারেক্টার):");
+  if (!pw) return;
+  const r = await fetch(`${API}/api/admin/users/${id}/password`, { method:"PUT", headers: authHeaders(), body: JSON.stringify({newPassword: pw}) });
+  const data = await r.json();
+  if (!r.ok) return alert(data.error);
+  alert("পাসওয়ার্ড রিসেট হয়েছে।");
+}
+async function deleteUser(id, email) {
+  if (!confirm(`ইউজার "${email}" পুরোপুরি ডিলিট করবেন? তার কার্ডও unassigned হয়ে যাবে।`)) return;
+  const r = await fetch(`${API}/api/admin/users/${id}`, { method:"DELETE", headers: authHeaders(false) });
+  if (r.ok) { loadUsers(); loadCards(); loadStats(); }
+}
+
+// user modal (shared for add + edit)
+const userModal = document.getElementById("userModalOverlay");
+function openModal(){ userModal.classList.remove("hidden"); }
+function closeModal(){ userModal.classList.add("hidden"); document.getElementById("userModalForm").reset(); document.getElementById("um_userId").value=""; }
+document.getElementById("userModalClose").onclick = closeModal;
+document.getElementById("userModalCancel").onclick = closeModal;
+
+document.getElementById("addUserBtn").onclick = () => {
+  document.getElementById("userModalTitle").textContent = "Add user";
+  document.getElementById("um_pw_label").textContent = "Password";
+  document.getElementById("um_password").placeholder = "min 6 characters";
+  document.getElementById("um_password").required = true;
+  openModal();
+};
+
+window.openEditUser = async (id) => {
+  const r = await fetch(`${API}/api/admin/users/${id}`, { headers: authHeaders(false) });
+  const u = await r.json();
+  document.getElementById("userModalTitle").textContent = "Edit user";
+  document.getElementById("um_pw_label").textContent = "Password";
+  document.getElementById("um_password").placeholder = "leave blank — use 'Reset password' instead";
+  document.getElementById("um_password").required = false;
+  document.getElementById("um_userId").value = u.id;
+  document.getElementById("um_email").value = u.email;
+  ["full_name","job_title","company","bio","phone","email_public","photo_url"].forEach(f => {
+    document.getElementById("um_"+f).value = (u.profile && u.profile[f]) || "";
+  });
+  openModal();
+};
+
+document.getElementById("userModalForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("um_userId").value;
+  const payload = {
+    full_name: document.getElementById("um_full_name").value,
+    job_title: document.getElementById("um_job_title").value,
+    company: document.getElementById("um_company").value,
+    bio: document.getElementById("um_bio").value,
+    phone: document.getElementById("um_phone").value,
+    email_public: document.getElementById("um_email_public").value,
+    photo_url: document.getElementById("um_photo_url").value,
+  };
+  if (id) {
+    // editing existing user's profile
+    const r = await fetch(`${API}/api/admin/users/${id}`, { method:"PUT", headers: authHeaders(), body: JSON.stringify(payload) });
+    const data = await r.json();
+    if (!r.ok) return toast("userModalMsg", data.error, "error");
+  } else {
+    // creating a brand-new user
+    const email = document.getElementById("um_email").value;
+    const password = document.getElementById("um_password").value;
+    if (!password || password.length < 6) return toast("userModalMsg", "Password must be at least 6 characters", "error");
+    const r = await fetch(`${API}/api/admin/users`, { method:"POST", headers: authHeaders(), body: JSON.stringify({ email, password, full_name: payload.full_name }) });
+    const data = await r.json();
+    if (!r.ok) return toast("userModalMsg", data.error, "error");
+    // immediately fill in the rest of the profile fields too
+    await fetch(`${API}/api/admin/users/${data.userId}`, { method:"PUT", headers: authHeaders(), body: JSON.stringify(payload) });
+  }
+  closeModal();
+  loadUsers(); loadStats();
+};
+
+// ---------- SETTINGS ----------
+async function loadSettingsForm() {
+  const r = await fetch(`${API}/api/admin/me`, { headers: authHeaders(false) });
+  if (r.ok) { const me = await r.json(); document.getElementById("setEmail").value = me.email; }
+}
+document.getElementById("settingsForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const newEmail = document.getElementById("setEmail").value;
+  const newPassword = document.getElementById("setNewPassword").value;
+  const currentPassword = document.getElementById("setCurrentPassword").value;
+  const r = await fetch(`${API}/api/admin/account`, { method:"PUT", headers: authHeaders(), body: JSON.stringify({ currentPassword, newEmail, newPassword }) });
+  const data = await r.json();
+  if (!r.ok) return toast("settingsMsg", data.error, "error");
+  toast("settingsMsg", "Account updated.", "success");
+  document.getElementById("setCurrentPassword").value = "";
+  document.getElementById("setNewPassword").value = "";
+};
+</script>
+</body>
+</html>

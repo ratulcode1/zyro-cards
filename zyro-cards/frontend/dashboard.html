@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8" />
+<title>Zyro Cards — My Profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<style>
+  .layout { display:grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px; align-items:start; }
+  @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+  .section-title { font-size: 13px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color: var(--muted); margin: 26px 0 12px; }
+  .section-title:first-child { margin-top: 0; }
+
+  .photo-row { display:flex; align-items:center; gap:18px; margin-bottom: 6px; }
+  .photo-circle {
+    width:76px; height:76px; border-radius:50%; object-fit:cover; background: var(--panel-2);
+    border: 2px solid var(--border); flex-shrink:0;
+  }
+  .upload-btn { position:relative; overflow:hidden; }
+  .upload-btn input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+  .link-item { display:flex; gap:8px; margin-bottom:10px; align-items:center; }
+  .link-item input { flex:1; }
+  .link-item .remove { flex-shrink:0; width:38px; height:38px; padding:0; }
+
+  .card-status-box { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; background: var(--panel-2); border:1px solid var(--border); border-radius: var(--radius-sm); }
+  .card-status-box .link-out { font-size:12.5px; word-break:break-all; }
+
+  /* live preview mock phone */
+  .preview-sticky { position: sticky; top: 22px; }
+  .preview-frame {
+    background: var(--panel); border:1px solid var(--border); border-radius: 22px; padding: 14px;
+  }
+  .preview-label { font-size:12px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; padding: 0 4px; }
+  .preview-inner { border-radius:16px; overflow:hidden; border:1px solid var(--border); background:#f3f5f9; }
+  .preview-inner iframe { width:100%; height:560px; border:none; display:block; }
+
+  .theme-swatches { display:flex; gap:10px; }
+  .swatch { width:56px; height:40px; border-radius:10px; cursor:pointer; border:2px solid transparent; display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; font-size:10px; font-weight:700; color:#fff; }
+  .swatch.selected { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><div class="mark">Z</div><h2>My Profile</h2></div>
+    <button class="secondary" id="logoutBtn">Log out</button>
+  </div>
+
+  <div id="msg"></div>
+
+  <div class="layout">
+    <!-- LEFT: editing panels -->
+    <div>
+      <!-- Card activation -->
+      <div class="card" style="margin-bottom:18px;">
+        <div class="section-title" style="margin-top:0;">Your card</div>
+        <div id="cardStatus">Loading…</div>
+        <div id="activateBox" class="hidden" style="margin-top:12px; display:flex; gap:10px;">
+          <input type="text" id="activateCode" placeholder="Enter the code printed on your card" style="flex:1;" />
+          <button id="activateBtn">Activate</button>
+        </div>
+      </div>
+
+      <!-- Profile edit -->
+      <div class="card">
+        <form id="profileForm">
+          <div class="section-title" style="margin-top:0;">Photo</div>
+          <div class="photo-row">
+            <img id="photoPreview" class="photo-circle" src="" />
+            <button type="button" class="secondary upload-btn">
+              Upload photo
+              <input type="file" id="photoFile" accept="image/*" />
+            </button>
+          </div>
+          <input type="hidden" id="photo_url" />
+
+          <div class="section-title">Basic info</div>
+          <div class="row2">
+            <div class="field"><label>Full name</label><input id="full_name" placeholder="Your name" /></div>
+            <div class="field"><label>Job title</label><input id="job_title" placeholder="e.g. Sales Manager" /></div>
+          </div>
+          <div class="field"><label>Company</label><input id="company" /></div>
+          <div class="field"><label>Bio</label><textarea id="bio" rows="3" placeholder="A short line about you"></textarea></div>
+
+          <div class="section-title">Contact</div>
+          <div class="row2">
+            <div class="field"><label>Phone</label><input id="phone" placeholder="+880..." /></div>
+            <div class="field"><label>Public email</label><input id="email_public" /></div>
+          </div>
+
+          <div class="section-title">Theme color</div>
+          <div class="theme-swatches" id="themeSwatches"></div>
+          <input type="hidden" id="theme" value="classic" />
+
+          <div class="section-title">Links</div>
+          <div id="linksList"></div>
+          <button type="button" class="ghost small" id="addLinkBtn">+ Add link</button>
+
+          <button type="submit" style="width:100%; margin-top:24px;">Save changes</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- RIGHT: live preview -->
+    <div class="preview-sticky">
+      <div class="preview-frame">
+        <div class="preview-label">Live preview</div>
+        <div class="preview-inner">
+          <iframe id="previewFrame" src="about:blank"></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:4000";
+const token = localStorage.getItem("zyro_token");
+if (!token) window.location.href = "login.html";
+const authHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+const msg = document.getElementById("msg");
+function showMsg(text, type) { msg.innerHTML = `<div class="msg ${type}">${text}</div>`; setTimeout(()=>msg.innerHTML="",3000); }
+
+document.getElementById("logoutBtn").onclick = () => { localStorage.removeItem("zyro_token"); window.location.href = "login.html"; };
+
+// theme swatches
+const THEMES = { classic:"#1c3fae", minimal:"#0d1017", bold:"#d6336c", forest:"#0f7a5c" };
+const swatchBox = document.getElementById("themeSwatches");
+Object.entries(THEMES).forEach(([name,color]) => {
+  const el = document.createElement("div");
+  el.className = "swatch"; el.style.background = color; el.textContent = name;
+  el.onclick = () => { document.getElementById("theme").value = name; document.querySelectorAll(".swatch").forEach(s=>s.classList.remove("selected")); el.classList.add("selected"); };
+  swatchBox.appendChild(el);
+});
+
+let links = [];
+function renderLinks() {
+  const box = document.getElementById("linksList");
+  box.innerHTML = "";
+  links.forEach((l, i) => {
+    const row = document.createElement("div");
+    row.className = "link-item";
+    row.innerHTML = `
+      <input placeholder="Label (e.g. LinkedIn)" value="${l.label||''}" data-i="${i}" data-f="label">
+      <input placeholder="https://..." value="${l.url||''}" data-i="${i}" data-f="url">
+      <button type="button" class="danger remove" data-remove="${i}">✕</button>
+    `;
+    box.appendChild(row);
+  });
+  box.querySelectorAll("input").forEach(inp => {
+    inp.oninput = (e) => { links[e.target.dataset.i][e.target.dataset.f] = e.target.value; };
+  });
+  box.querySelectorAll("[data-remove]").forEach(btn => {
+    btn.onclick = () => { links.splice(btn.dataset.remove, 1); renderLinks(); };
+  });
+}
+document.getElementById("addLinkBtn").onclick = () => { links.push({label:"", url:""}); renderLinks(); };
+
+let myCardCode = null;
+function refreshPreview() {
+  if (!myCardCode) return;
+  document.getElementById("previewFrame").src = `${API}/u/${myCardCode}?t=${Date.now()}`;
+}
+
+async function loadCards() {
+  const r = await fetch(`${API}/api/cards/me`, { headers: authHeaders });
+  const cards = await r.json();
+  const statusBox = document.getElementById("cardStatus");
+  const activateBox = document.getElementById("activateBox");
+  if (cards.length === 0) {
+    statusBox.innerHTML = `<span class="badge unassigned">No card linked yet</span>`;
+    activateBox.classList.remove("hidden");
+  } else {
+    myCardCode = cards[0].unique_code;
+    statusBox.innerHTML = cards.map(c =>
+      `<div class="card-status-box"><span class="badge active">Active</span> <a class="link-out" href="${c.publicUrl}" target="_blank">${c.publicUrl}</a></div>`
+    ).join("");
+    activateBox.classList.add("hidden");
+    refreshPreview();
+  }
+}
+document.getElementById("activateBtn").onclick = async () => {
+  const code = document.getElementById("activateCode").value.trim();
+  if (!code) return;
+  const r = await fetch(`${API}/api/cards/activate`, { method: "POST", headers: authHeaders, body: JSON.stringify({ code }) });
+  const data = await r.json();
+  if (!r.ok) return showMsg(data.error, "error");
+  showMsg("Card activated!", "success");
+  loadCards();
+};
+
+// Photo upload
+document.getElementById("photoFile").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("photo", file);
+  const r = await fetch(`${API}/api/profile/photo`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData });
+  const data = await r.json();
+  if (!r.ok) return showMsg(data.error || "Upload failed", "error");
+  document.getElementById("photo_url").value = data.photo_url;
+  document.getElementById("photoPreview").src = data.photo_url;
+  showMsg("Photo uploaded.", "success");
+  refreshPreview();
+};
+
+async function loadProfile() {
+  const r = await fetch(`${API}/api/profile/me`, { headers: authHeaders });
+  const p = await r.json();
+  ["full_name","job_title","company","bio","phone","email_public","photo_url","theme"].forEach(f => {
+    if (document.getElementById(f)) document.getElementById(f).value = p[f] || "";
+  });
+  if (p.photo_url) document.getElementById("photoPreview").src = p.photo_url;
+  document.querySelectorAll(".swatch").forEach(s => s.classList.toggle("selected", s.textContent === (p.theme||"classic")));
+  links = p.links || [];
+  renderLinks();
+}
+
+document.getElementById("profileForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const body = {
+    full_name: document.getElementById("full_name").value,
+    job_title: document.getElementById("job_title").value,
+    company: document.getElementById("company").value,
+    bio: document.getElementById("bio").value,
+    phone: document.getElementById("phone").value,
+    email_public: document.getElementById("email_public").value,
+    photo_url: document.getElementById("photo_url").value,
+    theme: document.getElementById("theme").value,
+    links
+  };
+  const r = await fetch(`${API}/api/profile/me`, { method: "PUT", headers: authHeaders, body: JSON.stringify(body) });
+  if (r.ok) { showMsg("Saved — your public card is updated instantly.", "success"); refreshPreview(); }
+  else showMsg("Something went wrong.", "error");
+};
+
+loadCards();
+loadProfile();
+</script>
+</body>
+</html>
