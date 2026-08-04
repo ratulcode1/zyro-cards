@@ -33,7 +33,7 @@
 </div>
 
 <script>
-const API = "http://localhost:4000";
+const API = window.location.origin;
 const msg = document.getElementById("msg");
 function showMsg(text, type) { msg.innerHTML = `<div class="msg ${type}">${text}</div>`; }
 
