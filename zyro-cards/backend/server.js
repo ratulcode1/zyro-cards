@@ -48,6 +48,37 @@ const upload = multer({
 const db = new DatabaseSync(path.join(__dirname, "zyro.db"));
 db.exec(fs.readFileSync(path.join(__dirname, "..", "schema.sql"), "utf8"));
 
+// ============================================
+// AUTO CREATE DEFAULT ADMIN (Runs once)
+// ============================================
+
+const DEFAULT_ADMIN_EMAIL = "admin@zyrocards.com";
+const DEFAULT_ADMIN_PASSWORD = "admin123";
+
+try {
+  const existingAdmin = db
+    .prepare("SELECT * FROM admins WHERE email = ?")
+    .get(DEFAULT_ADMIN_EMAIL);
+
+  if (!existingAdmin) {
+    const hashedPassword = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
+
+    db.prepare(
+      "INSERT INTO admins (email, password_hash) VALUES (?, ?)"
+    ).run(DEFAULT_ADMIN_EMAIL, hashedPassword);
+
+    console.log("====================================");
+    console.log("✅ Default Admin Created");
+    console.log("Email:", DEFAULT_ADMIN_EMAIL);
+    console.log("Password:", DEFAULT_ADMIN_PASSWORD);
+    console.log("====================================");
+  } else {
+    console.log("✅ Admin already exists.");
+  }
+} catch (err) {
+  console.error("❌ Failed to create default admin:", err);
+}
+
 // ---------- HELPERS ----------
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
