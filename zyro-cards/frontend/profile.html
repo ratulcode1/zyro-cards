@@ -151,7 +151,7 @@
 </div>
 
 <script>
-const API = "http://localhost:4000";
+const API = window.location.origin;
 const code = window.location.pathname.split("/u/")[1] || new URLSearchParams(window.location.search).get("code");
 
 const ICONS = {
